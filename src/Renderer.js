@@ -1,6 +1,7 @@
 // Render.py: desenha cenário, estilingue, personagens, trajetória e HUD.
-// Toda a arte é desenhada em canvas (personagens próprios, sem imagens externas).
+// Usa os sprites do jogo original (Assets.js); o desenho vetorial fica como reserva.
 import { toScreenY, GROUND_Y } from './Level.js';
+import { images as IMG } from './Assets.js';
 
 const GROUND = toScreenY(GROUND_Y);
 const C = { bird: '#2a9d8f', birdBelly: '#e9f5db', beak: '#f4a261', pest: '#6a4c93', pestDark: '#3c2a57',
@@ -36,6 +37,11 @@ export class Renderer {
 
   background(ctx) {
     const w = this.canvas.width, h = this.canvas.height;
+    if (IMG.background) { // Render.render_background(): fundo verde + imagem em (0, -50)
+      ctx.fillStyle = 'rgb(130,200,100)'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(IMG.background, 0, -50);
+      return;
+    }
     const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
     sky.addColorStop(0, '#8ecae6'); sky.addColorStop(1, '#e0f4fb');
     ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
@@ -62,24 +68,47 @@ export class Renderer {
     ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
   }
+  // sling-3.png: recorte (50,0,70,220) atrás do pássaro e (0,0,60,200) na frente, como no Render.py
+  slingImg(ctx, sx, sw, sh, dx) {
+    const s = this.game.sling, img = IMG.sling;
+    const w = Math.min(sw, img.width - sx), h = Math.min(sh, img.height);
+    ctx.drawImage(img, sx, 0, w, h, s.x + dx, s.y - 26, w, h);
+  }
   slingBack(ctx) {
     const s = this.game.sling;
+    if (IMG.sling) {
+      this.slingImg(ctx, 50, 70, 220, -9);
+      // o estilingue aqui fica 28 px mais alto que no Python: alonga o tronco até o chão
+      const top = s.y - 26 + 120, h = GROUND + 4 - top;
+      if (h > 0) ctx.drawImage(IMG.sling, 58, 96, 18, 24, s.x - 1, top, 18, h);
+      return;
+    }
     this.arm(ctx, s.x, 462, s.x + 22, 410, 11, '#6b3f1d');
   }
   slingFront(ctx) {
     const g = this.game, s = g.sling;
-    const tipBack = { x: s.x + 22, y: 412 }, tipFront = { x: s.x - 20, y: 412 };
+    const img = !!IMG.sling;
+    const tipBack = img ? { x: s.x + 13, y: s.y + 4 } : { x: s.x + 22, y: 412 };
+    const tipFront = img ? { x: s.x - 12, y: s.y + 4 } : { x: s.x - 20, y: 412 };
     let p = null;
     if (g.level.birdsLeft > 0 && g.state === g.playingState) p = g.pulling ? g.pullPoint() : { x: s.x + 1, y: s.y + 4 };
     ctx.strokeStyle = C.band; ctx.lineWidth = 5; ctx.lineCap = 'round';
     if (p) { ctx.beginPath(); ctx.moveTo(tipBack.x, tipBack.y); ctx.lineTo(p.x, p.y); ctx.stroke(); }
     if (p) this.bird(ctx, p.x, p.y, g.birdSize.getRadius(), 0);
-    this.arm(ctx, s.x, GROUND + 2, s.x, 460, 16, '#7b4a24');
-    this.arm(ctx, s.x, 462, s.x - 20, 410, 12, '#8c5a2b');
+    if (img) this.slingImg(ctx, 0, 60, 200, -27);
+    else {
+      this.arm(ctx, s.x, GROUND + 2, s.x, 460, 16, '#7b4a24');
+      this.arm(ctx, s.x, 462, s.x - 20, 410, 12, '#8c5a2b');
+    }
     if (p) { ctx.strokeStyle = C.band; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(tipFront.x, tipFront.y); ctx.lineTo(p.x, p.y); ctx.stroke(); }
   }
 
   bird(ctx, x, y, r, angle) {
+    if (IMG.bird) { // red-bird3.png (40 px para raio 14), sem girar, como no original
+      const d = r * 2.9;
+      ctx.drawImage(IMG.bird, x - d * 0.55, y - d * 0.5, d, d);
+      return;
+    }
     ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
     ctx.fillStyle = '#21867a';
     ctx.beginPath(); ctx.moveTo(-r * 0.9, -r * 0.1); ctx.lineTo(-r * 1.55, -r * 0.45); ctx.lineTo(-r * 1.45, r * 0.25); ctx.fill(); // cauda
@@ -93,6 +122,14 @@ export class Renderer {
   }
 
   pest(ctx, x, y, r, angle, health) {
+    if (IMG.pig) { // recorte (181,1050,50,50) do full-sprite.png, girando com o corpo
+      const d = r * 2.2;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+      ctx.drawImage(IMG.pig, -d / 2, -d / 2, d, d);
+      ctx.restore();
+      this.healthBar(ctx, x, y, r, health);
+      return;
+    }
     ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
     ctx.strokeStyle = C.pestDark; ctx.lineWidth = Math.max(1.5, r * 0.08);
     for (const s of [-1, 1]) for (const k of [-0.5, 0, 0.5]) {
@@ -107,13 +144,24 @@ export class Renderer {
     for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * r * 0.22, -r * 0.75, r * 0.13, 0, 7); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.ellipse(-r * 0.35, -r * 0.05, r * 0.16, r * 0.35, 0.3, 0, 7); ctx.fill();
     ctx.restore();
-    if (health < 1) {
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x - r, y - r - 12, r * 2, 4);
-      ctx.fillStyle = '#e63946'; ctx.fillRect(x - r, y - r - 12, r * 2 * Math.max(0, health), 4);
-    }
+    this.healthBar(ctx, x, y, r, health);
+  }
+
+  healthBar(ctx, x, y, r, health) {
+    if (health >= 1) return;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x - r, y - r - 12, r * 2, 4);
+    ctx.fillStyle = '#e63946'; ctx.fillRect(x - r, y - r - 12, r * 2 * Math.max(0, health), 4);
   }
 
   block(ctx, b) {
+    const beamKind = b.plugin.kind === 'beam', tex = beamKind ? IMG.beam : IMG.column;
+    if (tex) { // wood.png / wood2.png recortados como no Polygon.py
+      const bw = b.bounds0 || (b.bounds0 = this.size(b));
+      ctx.save(); ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
+      ctx.drawImage(tex, -bw.w / 2, -bw.h / 2, bw.w, bw.h);
+      ctx.restore();
+      return;
+    }
     const v = b.vertices;
     ctx.fillStyle = C.wood; ctx.strokeStyle = C.woodDark; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(v[0].x, v[0].y); for (let i = 1; i < v.length; i++) ctx.lineTo(v[i].x, v[i].y); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -126,6 +174,14 @@ export class Renderer {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  // largura e altura do bloco sem rotação (a partir dos vértices locais)
+  size(b) {
+    const v = b.vertices, a = b.angle, c = Math.cos(-a), sn = Math.sin(-a);
+    const xs = v.map((p) => (p.x - b.position.x) * c - (p.y - b.position.y) * sn);
+    const ys = v.map((p) => (p.x - b.position.x) * sn + (p.y - b.position.y) * c);
+    return { w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
   }
 
   trajectory(ctx) {
@@ -149,6 +205,8 @@ export class Renderer {
     ctx.fillStyle = 'rgba(29,53,87,.85)'; ctx.font = '700 26px system-ui, sans-serif'; ctx.textAlign = 'right';
     ctx.fillText(`Pontos ${g.score.toLocaleString('pt-BR')}`, 1180, 40);
     ctx.textAlign = 'left'; ctx.fillText(`Fase ${g.level.number + 1}`, 20, 40);
-    for (let i = 0; i < g.level.birdsLeft; i++) this.bird(ctx, 30 + i * 28, 72, 10, 0);
+    // Render.render_waiting_birds(): os pássaros que faltam esperam no chão, à esquerda do estilingue
+    const waiting = Math.max(0, g.level.birdsLeft - 1), step = waiting > 3 ? 105 / waiting : 35;
+    for (let i = 0; i < waiting; i++) this.bird(ctx, 118 - i * step, GROUND - 13, 13, 0);
   }
 }

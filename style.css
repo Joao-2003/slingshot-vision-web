@@ -17,6 +17,10 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
 .card h2 { margin: 0 0 6px; }
 .stars { font-size: 44px; letter-spacing: 6px; color: #3a5068; }
 .stars .lit { color: var(--gold); }
+.stars img { width: 84px; height: 84px; margin: 0 2px; filter: grayscale(1) brightness(.45); }
+.stars img:nth-child(2) { width: 104px; height: 104px; }
+.stars img.lit { filter: none; }
+.stars img.failed { width: 150px; height: auto; filter: none; }
 .actions { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
 #overlay .only-paused, #overlay .only-cleared, #overlay .not-paused { display: none; }
 #overlay[data-state="paused"] .only-paused, #overlay[data-state="cleared"] .only-cleared,

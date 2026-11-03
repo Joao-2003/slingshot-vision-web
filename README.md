@@ -2,7 +2,7 @@
 
 🇧🇷 Português | [🇺🇸 English](README.en.md)
 
-Jogo de estilingue que roda direto no navegador e pode ser controlado **pela mão, pela webcam**. É a versão web do meu jogo em Python com visão computacional ([Angry_Birds_Computer_Vision_Python](https://github.com/Joao-2003/Angry_Birds_Computer_Vision_Python)), reescrita em JavaScript com arte própria.
+Jogo de estilingue que roda direto no navegador e pode ser controlado **pela mão, pela webcam**. É a versão web do meu jogo em Python com visão computacional ([Angry_Birds_Computer_Vision_Python](https://github.com/Joao-2003/Angry_Birds_Computer_Vision_Python)), reescrita em JavaScript com os mesmos sprites, trilha e efeitos sonoros do original.
 
 **▶ Jogar:** https://joao-2003.github.io/slingshot-vision-web/
 
@@ -16,7 +16,7 @@ Jogo de estilingue que roda direto no navegador e pode ser controlado **pela mã
 | Mouse ou toque | Segure perto do estilingue, puxe e solte |
 | Teclado | `P` pausa, `R` recomeça, `S` gravidade baixa, `W` parede à direita, `C` câmera |
 
-Derrube as pragas com o menor número de pássaros: cada praga vale 10.000 pontos, cada peça de madeira quebrada 5.000 e cada pássaro que sobra dá bônus. As fases 1 a 14 são as mesmas do jogo original; da 15ª em diante, cada fase é gerada combinando duas fases base com tamanhos de personagens sorteados.
+Derrube os porcos com o menor número de pássaros: cada porco vale 10.000 pontos, cada peça de madeira quebrada 5.000 e cada pássaro que sobra dá bônus. As fases 1 a 14 são as mesmas do jogo original; da 15ª em diante, cada fase é gerada combinando duas fases base com tamanhos de personagens sorteados.
 
 ## Da versão em Python para a web
 
@@ -25,7 +25,7 @@ Derrube as pragas com o menor número de pássaros: cada praga vale 10.000 ponto
 | Pygame | Canvas 2D |
 | Pymunk | [Matter.js](https://brm.io/matter-js/) |
 | OpenCV + MediaPipe Hands | [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) (HandLandmarker, roda no navegador via WebAssembly) |
-| Sprites e sons de arquivo | Personagens desenhados em código e sons sintetizados com Web Audio |
+| Sprites e sons em `resources/` | Os mesmos arquivos em `assets/` (fundo, estilingue, pássaro, porco, madeira, estrelas, trilha e efeitos); se algum não carregar, o jogo usa desenho vetorial e Web Audio como reserva |
 
 A detecção de pinça segue a lógica do `Vision.py`: a distância entre as pontas do polegar e do indicador, medida em relação ao tamanho da mão, precisa ficar abaixo de um limite por pelo menos 200 ms. A imagem da câmera é processada no próprio navegador e não sai do computador.
 
@@ -53,6 +53,10 @@ python -m http.server 8000
 ## Tecnologias
 
 JavaScript (ES modules) · Canvas 2D · Matter.js · MediaPipe Tasks Vision · Web Audio API · GitHub Pages
+
+## Créditos
+
+Projeto de fã, acadêmico e sem fins comerciais, inspirado no Angry Birds. Personagens, trilha e marca pertencem à Rovio Entertainment; parte dos sprites vem de sprite sheets de fãs (chinzapep e jared33, DeviantArt). O código é meu.
 
 ## Autor
 

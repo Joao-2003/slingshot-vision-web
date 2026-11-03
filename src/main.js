@@ -1,5 +1,8 @@
 import { GameFacade } from './GameFacade.js';
 import { UI } from './ui.js';
+import { loadImages } from './Assets.js';
+
+await loadImages();
 
 const canvas = document.getElementById('game');
 const ui = new UI();

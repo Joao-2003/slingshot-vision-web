@@ -14,7 +14,7 @@ export class UI {
     this.$('#btn-restart').onclick = () => game.loadLevel(game.level.number);
     this.$('#btn-gravity').onclick = send('toggle-gravity');
     this.$('#btn-wall').onclick = send('toggle-wall');
-    this.$('#btn-sound').onclick = () => { game.sound.on = !game.sound.on; this.setToggle('sound', !game.sound.on); };
+    this.$('#btn-sound').onclick = () => { game.sound.setOn(!game.sound.on); this.setToggle('sound', !game.sound.on); };
     this.$('#btn-camera').onclick = () => this.toggleCamera(game);
     this.$('#btn-next').onclick = send('next');
     this.$('#btn-replay').onclick = send('replay');
@@ -53,11 +53,12 @@ export class UI {
     if (name === 'cleared') {
       const stars = STARS.filter((s) => game.score >= s).length;
       this.$('#ov-title').textContent = 'Fase concluída!';
-      this.$('#ov-stars').innerHTML = [0, 1, 2].map((i) => `<span class="${i < stars ? 'lit' : ''}">★</span>`).join('');
+      // stars-edited.png recortada em três estrelas, como no Resources.py
+      this.$('#ov-stars').innerHTML = [0, 1, 2].map((i) => `<img src="assets/img/star${i + 1}.png" alt="" class="${i < stars ? 'lit' : ''}">`).join('');
       this.$('#ov-score').textContent = `${game.score.toLocaleString('pt-BR')} pontos`;
     } else if (name === 'failed') {
-      this.$('#ov-title').textContent = 'As pragas venceram desta vez';
-      this.$('#ov-stars').innerHTML = '';
+      this.$('#ov-title').textContent = 'Fase perdida';
+      this.$('#ov-stars').innerHTML = '<img src="assets/img/pig_failed.png" alt="" class="failed">';
       this.$('#ov-score').textContent = `${game.score.toLocaleString('pt-BR')} pontos`;
     } else if (name === 'paused') {
       this.$('#ov-title').textContent = 'Pausado';
