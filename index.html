@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slingshot Vision · estilingue com visão computacional</title>
+<meta name="description" content="Jogo de estilingue no navegador controlado pela mão via webcam (MediaPipe) ou pelo mouse.">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>Slingshot Vision</h1>
+  <nav class="bar">
+    <button id="btn-camera" title="Controlar com a mão (C)">📷 Câmera</button>
+    <button id="btn-pause" title="Pausar (P)">⏸ Pausa</button>
+    <button id="btn-restart" title="Recomeçar (R)">↻ Recomeçar</button>
+    <button id="btn-gravity" title="Gravidade baixa (S)">🪶 Gravidade</button>
+    <button id="btn-wall" title="Parede à direita (W)">🧱 Parede</button>
+    <button id="btn-sound" title="Som">🔊 Som</button>
+  </nav>
+</header>
+<main>
+  <div class="stage">
+    <canvas id="game" width="1200" height="650" aria-label="Área do jogo"></canvas>
+    <div id="overlay" hidden>
+      <div class="card">
+        <h2 id="ov-title"></h2>
+        <div id="ov-stars" class="stars"></div>
+        <p id="ov-score"></p>
+        <div class="actions">
+          <button id="btn-resume" class="only-paused">Continuar</button>
+          <button id="btn-replay" class="not-paused">↻ Jogar de novo</button>
+          <button id="btn-next" class="only-cleared">Próxima fase →</button>
+        </div>
+      </div>
+    </div>
+    <div id="cam-box" hidden><canvas id="cam" width="240" height="180"></canvas></div>
+  </div>
+  <p id="cam-status" class="status"></p>
+  <p class="help">Mouse ou toque: segure perto do estilingue, puxe e solte. Câmera: junte polegar e indicador, mova a mão e afaste os dedos.
+    Atalhos: <kbd>P</kbd> pausa, <kbd>R</kbd> recomeça, <kbd>S</kbd> gravidade, <kbd>W</kbd> parede, <kbd>C</kbd> câmera.</p>
+</main>
+<footer>Versão web do meu jogo em Python com visão computacional · <a href="https://github.com/Joao-2003">João Victor Guidi de Lima</a></footer>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

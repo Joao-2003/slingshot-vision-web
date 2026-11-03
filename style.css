@@ -1,0 +1,31 @@
+:root { --bg: #0f1d2b; --panel: #16283a; --text: #e9f1f7; --muted: #9fb3c8; --accent: #2a9d8f; --gold: #ffd166; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 20px; max-width: 1240px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 0; letter-spacing: .3px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; }
+button { background: var(--panel); color: var(--text); border: 1px solid #2c4560; border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .6; cursor: wait; }
+main { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+.stage { position: relative; }
+#game { width: 100%; height: auto; display: block; border-radius: 12px; touch-action: none; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+#overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(15,29,43,.45); border-radius: 12px; }
+#overlay[hidden] { display: none; }
+.card { background: var(--panel); border: 1px solid #2c4560; border-radius: 14px; padding: 24px 32px; text-align: center; min-width: 300px; }
+.card h2 { margin: 0 0 6px; }
+.stars { font-size: 44px; letter-spacing: 6px; color: #3a5068; }
+.stars .lit { color: var(--gold); }
+.actions { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+#overlay .only-paused, #overlay .only-cleared, #overlay .not-paused { display: none; }
+#overlay[data-state="paused"] .only-paused, #overlay[data-state="cleared"] .only-cleared,
+#overlay[data-state="cleared"] .not-paused, #overlay[data-state="failed"] .not-paused { display: inline-block; }
+#cam-box { position: absolute; right: 12px; bottom: 12px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; width: 20%; max-width: 240px; }
+#cam-box[hidden] { display: none; }
+#cam { width: 100%; display: block; }
+.status { color: var(--gold); min-height: 1.5em; margin: 10px 0 0; }
+.help { color: var(--muted); margin: 4px 0 20px; }
+kbd { background: var(--panel); border: 1px solid #2c4560; border-radius: 4px; padding: 0 5px; font-size: 13px; }
+footer { color: var(--muted); text-align: center; padding: 10px 20px 24px; font-size: 13px; }
+footer a { color: var(--text); }
