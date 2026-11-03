@@ -27,9 +27,9 @@ export class Renderer {
     this.background(ctx);
     this.slingBack(ctx);
     g.blocks.forEach((b) => this.block(ctx, b));
-    g.pests.forEach((p) => this.pest(ctx, p.body.position.x, p.body.position.y, p.radius, p.body.angle, p.life / p.size.getLife()));
+    g.pests.forEach((p) => { const q = p.position; this.pest(ctx, q.x, q.y, p.radius, p.angle, p.life / p.size.getLife()); });
     this.trajectory(ctx);
-    g.birds.forEach((b) => this.bird(ctx, b.body.position.x, b.body.position.y, b.radius, b.body.angle));
+    g.birds.forEach((b) => { const q = b.position; this.bird(ctx, q.x, q.y, b.radius, b.angle); });
     this.slingFront(ctx);
     this.effects(ctx);
     this.hud(ctx);
@@ -154,34 +154,21 @@ export class Renderer {
   }
 
   block(ctx, b) {
-    const beamKind = b.plugin.kind === 'beam', tex = beamKind ? IMG.beam : IMG.column;
+    const { x, y } = b.position, beam = b.kind === 'beam', tex = beam ? IMG.beam : IMG.column;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(b.angle);
     if (tex) { // wood.png / wood2.png recortados como no Polygon.py
-      const bw = b.bounds0 || (b.bounds0 = this.size(b));
-      ctx.save(); ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
-      ctx.drawImage(tex, -bw.w / 2, -bw.h / 2, bw.w, bw.h);
-      ctx.restore();
-      return;
-    }
-    const v = b.vertices;
-    ctx.fillStyle = C.wood; ctx.strokeStyle = C.woodDark; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(v[0].x, v[0].y); for (let i = 1; i < v.length; i++) ctx.lineTo(v[i].x, v[i].y); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.save(); ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
-    const beam = b.plugin.kind === 'beam', L = beam ? 34 : 34;
-    ctx.strokeStyle = 'rgba(141,95,52,.55)'; ctx.lineWidth = 1.2;
-    for (const k of [-0.25, 0.25]) {
-      ctx.beginPath();
-      if (beam) { ctx.moveTo(-L, k * 20); ctx.lineTo(L, k * 20); } else { ctx.moveTo(k * 20, -L); ctx.lineTo(k * 20, L); }
-      ctx.stroke();
+      ctx.drawImage(tex, -b.w / 2, -b.h / 2, b.w, b.h);
+    } else {
+      ctx.fillStyle = C.wood; ctx.strokeStyle = C.woodDark; ctx.lineWidth = 2;
+      ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); ctx.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      ctx.strokeStyle = 'rgba(141,95,52,.55)'; ctx.lineWidth = 1.2;
+      for (const k of [-0.25, 0.25]) {
+        ctx.beginPath();
+        if (beam) { ctx.moveTo(-34, k * 20); ctx.lineTo(34, k * 20); } else { ctx.moveTo(k * 20, -34); ctx.lineTo(k * 20, 34); }
+        ctx.stroke();
+      }
     }
     ctx.restore();
-  }
-
-  // largura e altura do bloco sem rotação (a partir dos vértices locais)
-  size(b) {
-    const v = b.vertices, a = b.angle, c = Math.cos(-a), sn = Math.sin(-a);
-    const xs = v.map((p) => (p.x - b.position.x) * c - (p.y - b.position.y) * sn);
-    const ys = v.map((p) => (p.x - b.position.x) * sn + (p.y - b.position.y) * c);
-    return { w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
   }
 
   trajectory(ctx) {

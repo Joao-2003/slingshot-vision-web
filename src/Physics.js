@@ -1,72 +1,64 @@
-// Physics.py: colisões e regras de dano, com os mesmos limiares de impulso do original.
-import { SUBSTEPS } from './Game.js';
-const { Events, Composite, Pair } = Matter;
+// Physics.py: colisões e regras de dano, com os mesmos tratadores e limiares do original.
+// O motor é o Chipmunk2D (porte em JavaScript), o mesmo que o Pymunk usa por baixo; por isso
+// massa, momento, elasticidade e atrito se combinam e se comportam como no jogo em Python.
+import { COLLISION } from './characters/Character.js';
 
-// O Pymunk combina elasticidade e atrito multiplicando os valores das duas formas
-// (pássaro 0,95 x madeira 0 = sem quique; pássaro x chão = 0,9). O Matter.js usa o
-// maior e o menor valor; este ajuste reproduz a regra do Pymunk.
-if (!Pair.__pymunk) {
-  const update = Pair.update;
-  Pair.update = function (pair, collision, timestamp) {
-    update(pair, collision, timestamp);
-    const a = collision.parentA, b = collision.parentB;
-    pair.restitution = a.restitution * b.restitution;
-    pair.friction = a.friction * b.friction;
-  };
-  Pair.__pymunk = true;
-}
+export const toScreen = (v) => ({ x: v.x, y: 600 - v.y }); // Physics.to_pygame()
 
 export class Physics {
   constructor(game) {
     this.game = game;
-    Events.on(game.engine, 'collisionStart', (ev) => this.onCollision(ev));
+    const s = game.space, C = COLLISION, post = (fn) => (arb) => { fn.call(this, arb); return true; };
+    s.addCollisionHandler(C.bird, C.pest, null, null, post(this.postSolveBirdPig), null);
+    s.addCollisionHandler(C.bird, C.wood, null, null, post(this.postSolveBirdWood), null);
+    s.addCollisionHandler(C.pest, C.wood, null, null, post(this.postSolvePigWood), null);
   }
 
-  static impulse(pair) {
-    const a = pair.bodyA, b = pair.bodyB, n = pair.collision.normal;
-    const rel = ((a.velocity.x - b.velocity.x) * n.x + (a.velocity.y - b.velocity.y) * n.y) * 60 * SUBSTEPS; // px/s (velocidade do Matter é por subpasso)
-    const ma = a.isStatic ? Infinity : a.mass, mb = b.isStatic ? Infinity : b.mass;
-    const mEff = ma === Infinity ? mb : mb === Infinity ? ma : (ma * mb) / (ma + mb);
-    return Math.abs(rel) * mEff * 1.5; // (1 + elasticidade)
+  // arbiter.total_impulse do Pymunk (inclui atrito)
+  static impulse(arb) { const v = arb.totalImpulseWithFriction(); return Math.hypot(v.x, v.y); }
+  static shapes(arb) { return arb.getShapes(); } // na ordem dos tipos registrados, como arbiter.shapes
+
+  postSolveBirdPig(arb) {
+    if (!this.game.damageOn) return;
+    const [, pigShape] = Physics.shapes(arb);
+    this.killPest(pigShape.owner);
   }
 
-  onCollision(ev) {
-    const g = this.game;
-    if (performance.now() < g.damageEnabledAt) return;
-    for (const pair of ev.pairs) {
-      const kinds = [pair.bodyA, pair.bodyB].map((b) => b.label);
-      const imp = Physics.impulse(pair);
-      const get = (k) => (pair.bodyA.label === k ? pair.bodyA : pair.bodyB);
-      if (kinds.includes('bird') && kinds.includes('pest')) {
-        this.killPest(get('pest').plugin.owner);                       // post_solve_bird_pig
-      } else if (kinds.includes('bird') && kinds.includes('wood') && imp > 1100) {
-        this.breakBlock(get('wood'));                                  // post_solve_bird_wood
-      } else if (kinds.includes('pest') && kinds.includes('wood') && imp > 700) {
-        const pest = get('pest').plugin.owner;                         // post_solve_pig_wood
-        pest.life -= 20; g.score += 10000;
-        if (pest.life <= 0) this.killPest(pest, false);
-        else g.renderer.hit(pest.body.position);
-      }
-    }
+  postSolveBirdWood(arb) {
+    if (!this.game.damageOn || Physics.impulse(arb) <= 1100) return;
+    const [, woodShape] = Physics.shapes(arb);
+    this.breakBlock(woodShape.owner);
   }
+
+  postSolvePigWood(arb) {
+    if (!this.game.damageOn || Physics.impulse(arb) <= 700) return;
+    const g = this.game, [pigShape] = Physics.shapes(arb), pest = pigShape.owner;
+    if (!g.pests.includes(pest)) return;
+    pest.life -= 20; g.score += 10000;
+    if (pest.life <= 0) this.killPest(pest, false);
+    else g.renderer.hit(pest.position);
+  }
+
+  // o Chipmunk não deixa remover corpos no meio do passo: a remoção vai para o fim dele
+  later(fn) { const s = this.game.space; if (s.locked) s.addPostStepCallback(fn); else fn(); }
 
   killPest(pest, addScore = true) {
     const g = this.game;
     if (!pest || !g.pests.includes(pest)) return;
     g.pests = g.pests.filter((p) => p !== pest);
     if (addScore) g.score += 10000;
-    g.renderer.burst(pest.body.position, '#8bc34a');
+    g.renderer.burst(pest.position, '#8bc34a');
     g.sound.hit();
-    Composite.remove(g.engine.world, pest.body);
+    this.later(() => pest.remove(g.space));
   }
 
   breakBlock(block) {
     const g = this.game;
-    if (!g.blocks.includes(block)) return;
+    if (!block || !g.blocks.includes(block)) return;
     g.blocks = g.blocks.filter((b) => b !== block);
     g.score += 5000;
     g.renderer.burst(block.position, '#c8955a');
     g.sound.crack();
-    Composite.remove(g.engine.world, block);
+    this.later(() => block.remove(g.space));
   }
 }

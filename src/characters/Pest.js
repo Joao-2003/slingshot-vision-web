@@ -1,6 +1,6 @@
-// Pig.py no original. Aqui o alvo é uma praga da lavoura (arte própria).
+// Pig.py: o alvo da fase.
 import { Character } from './Character.js';
 
 export class Pest extends Character {
-  constructor(x, y, world, size) { super(x, y, world, size, 'pest'); }
+  constructor(x, y, space, size) { super(x, y, space, size, 'pest'); }
 }

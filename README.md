@@ -23,16 +23,15 @@ Derrube os porcos com o menor número de pássaros: cada porco vale 10.000 ponto
 | Python (original) | Web |
 |---|---|
 | Pygame | Canvas 2D |
-| Pymunk | [Matter.js](https://brm.io/matter-js/) |
+| Pymunk (Chipmunk2D) | [Chipmunk2D em JavaScript](https://github.com/josephg/Chipmunk-js), o mesmo motor |
 | OpenCV + MediaPipe Hands | [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) (HandLandmarker, roda no navegador via WebAssembly) |
 | Sprites e sons em `resources/` | Os mesmos arquivos em `assets/` (fundo, estilingue, pássaro, porco, madeira, estrelas, trilha e efeitos); se algum não carregar, o jogo usa desenho vetorial e Web Audio como reserva |
 
-### Física igual à do Pymunk
-- Cada fase começa nas posições em que o Pymunk deixa as peças depois de assentar (gerado por `tools/export_levels.py` a partir do `Level.py` original), então as pilhas saem idênticas.
-- Mesmas massas, mesma gravidade (700 px/s²), mesmo impulso de lançamento (distância × 53) e mesmos limiares de dano (1100 e 700).
-- Elasticidade e atrito combinados por multiplicação, como no Pymunk (pássaro e porco 0,95, madeira 0, chão 0,95), sem amortecimento do ar.
-- Sem "sleeping": quando uma coluna de baixo cai, o que está em cima cai junto.
-- 4 subpassos por quadro e momento de inércia físico das peças, para o Matter.js sustentar as pilhas como o Pymunk.
+### Mesma física do original
+O Pymunk é um binding de Python para o Chipmunk2D, então a versão web usa o porte do próprio Chipmunk2D para JavaScript, e não um motor diferente:
+- Mesmas massas, momentos de inércia (1000 nas peças de madeira), gravidade (700 px/s²), elasticidade (0,95), atrito, impulso de lançamento (distância × 53) e limiares de dano (1100 e 700, pelo `total_impulse` do contato).
+- Mesmo passo fixo de 0,01 s do `update_physics()`; o quique e a rolagem do pássaro no chão saem iguais aos do Pymunk.
+- Cada fase começa no estado em que o Pymunk deixa as peças do `Level.py` depois de assentar (`tools/export_levels.py`), porque o porte em JavaScript (Chipmunk 6.1) separa as peças sobrepostas de forma mais brusca que o Chipmunk 7 usado pelo Pymunk. Pelo mesmo motivo, o solver usa 20 iterações em vez de 10.
 
 A detecção de pinça segue a lógica do `Vision.py`: a distância entre as pontas do polegar e do indicador, medida em relação ao tamanho da mão, precisa ficar abaixo de um limite por pelo menos 200 ms. A imagem da câmera é processada no próprio navegador e não sai do computador.
 
@@ -59,7 +58,7 @@ python -m http.server 8000
 
 ## Tecnologias
 
-JavaScript (ES modules) · Canvas 2D · Matter.js · MediaPipe Tasks Vision · Web Audio API · GitHub Pages
+JavaScript (ES modules) · Canvas 2D · Chipmunk2D · MediaPipe Tasks Vision · Web Audio API · GitHub Pages
 
 ## Créditos
 

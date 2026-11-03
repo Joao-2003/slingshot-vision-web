@@ -12,28 +12,36 @@ import { LevelPausedState } from './states/LevelPausedState.js';
 import { LevelClearedState } from './states/LevelClearedState.js';
 import { LevelFailedState } from './states/LevelFailedState.js';
 import { PointerInput } from './input/PointerInput.js';
-const { Engine, Bodies, Composite } = Matter;
+import { COLLISION } from './characters/Character.js';
 
 export const ROPE_LENGTH = 90;
-// O Python fazia 2 passos de 0,01 s por quadro; aqui são 4 subpassos por quadro de 1/60 s,
-// o que mantém as pilhas de madeira estáveis no Matter.js sem precisar de "sleeping".
-export const SUBSTEPS = 4;
+// Physics.update_physics(): passos fixos de 0,01 s, como no Python (que fazia 2 por quadro a 50 fps).
+// Aqui o laço roda a 60 fps e acumula o tempo, para manter o mesmo passo e o mesmo ritmo real.
+export const DT = 0.01;
 export const STARS = [20000, 40000, 60000];
 
 export class Game {
   constructor(canvas, ui) {
     this.canvas = canvas; this.ui = ui;
-    this.engine = Engine.create({ positionIterations: 12, velocityIterations: 10, enableSleeping: false });
-    this.engine.gravity.scale = GRAVITY_NORMAL;
-    const w = canvas.width;
-    this.ground = Bodies.rectangle(w / 2, 540 + 50, w * 3, 100, { isStatic: true, friction: 1, restitution: 0.95, label: 'ground' });
-    this.wall = Bodies.rectangle(w + 25, 300, 50, 1200, { isStatic: true, friction: 1, restitution: 0.95, label: 'wall' });
-    Composite.add(this.engine.world, this.ground);
+    // Resources.init(): espaço com gravidade de 700 px/s², chão em y = 60 e muro opcional em x = 1200
+    this.space = new cp.Space();
+    this.space.gravity = cp.v(0, GRAVITY_NORMAL);
+    // o Chipmunk 6.1 (porte em JS) converge mais devagar que o Chipmunk 7 do Pymunk: 20 iterações
+    // deixam as pilhas com o mesmo comportamento das 10 do original
+    this.space.iterations = 20;
+    const line = (a, b) => {
+      const seg = new cp.SegmentShape(this.space.staticBody, a, b, 0);
+      seg.setElasticity(0.95); seg.setFriction(1); seg.setCollisionType(COLLISION.ground);
+      return seg;
+    };
+    this.ground = this.space.addShape(line(cp.v(0, 60), cp.v(1200, 60)));
+    this.wall = line(cp.v(1200, 60), cp.v(1200, 800));
+    this.acc = 0;
     this.wallOn = false; this.lowGravity = false;
 
     this.sling = { x: 147, y: 418 };
     this.pests = []; this.birds = []; this.blocks = [];
-    this.score = 0; this.bonusOnce = true; this.lastLaunch = 0; this.damageEnabledAt = 0;
+    this.score = 0; this.bonusOnce = true; this.lastLaunch = 0; this.damageOn = false;
     this.pulling = false; this.aim = { ...this.sling };
     this.birdSize = SIZES.normal;
 
@@ -63,10 +71,9 @@ export class Game {
     this.level.restart();
     this.score = 0; this.bonusOnce = true; this.pulling = false;
     this.level.load(n);
-    // assenta as estruturas antes de liberar o dano (no Pymunk isso acontecia nos primeiros quadros)
-    this.damageEnabledAt = Infinity;
-    for (let i = 0; i < 20; i++) this.stepPhysics();
-    this.damageEnabledAt = performance.now() + 300;
+    // a fase já começa assentada (levels_settled.js) e o dano vale desde o início, como no original
+    this.acc = 0;
+    this.damageOn = true;
     this.setState(this.playingState);
   }
 
@@ -81,27 +88,26 @@ export class Game {
     const p = this.pullPoint();
     if (p.distance < 8) return; // toque sem puxar não gasta pássaro
     const angle = Math.atan2(this.sling.y - p.y, this.sling.x - p.x);
-    const bird = this.birdFactory.createCharacter(p.distance, angle, p.x, p.y, this.engine.world, this.birdSize);
+    const bird = this.birdFactory.createCharacter(p.distance, angle, p.x, p.y, this.space, this.birdSize);
     this.birds.push(bird);
     this.level.birdsLeft -= 1;
     this.lastLaunch = performance.now();
     this.sound.release();
   }
 
-  stepPhysics() {
-    for (let k = 0; k < SUBSTEPS; k++) Engine.update(this.engine, 1000 / 60 / SUBSTEPS);
+  stepPhysics(frame = 1 / 60) {
+    this.acc += frame;
+    while (this.acc >= DT - 1e-9) { this.space.step(DT); this.acc -= DT; }
   }
 
   step() {
     this.state.update();
     if (this.state !== this.pausedState) this.stepPhysics();
     const last = this.birds[this.birds.length - 1];
-    if (last && last.path.length < 400 && last.body.speed * SUBSTEPS > 0.5) last.path.push({ ...last.body.position });
-    for (const b of [...this.birds]) {
-      const { x, y } = b.body.position;
-      if (x > 1500 || x < -300 || y > 900) { Composite.remove(this.engine.world, b.body); this.birds = this.birds.filter((q) => q !== b); }
-    }
-    for (const p of [...this.pests]) if (p.body.position.y > 900 || p.body.position.x > 1500) this.physics.killPest(p);
+    if (last && last.path.length < 400 && last.speed > 30) last.path.push(last.position);
+    // Render.render_birds()/render_pigs(): quem cai abaixo do chão (y < 0 no Pymunk) sai da fase, sem pontos
+    for (const b of [...this.birds]) if (b.position.y > 600) { b.remove(this.space); this.birds = this.birds.filter((q) => q !== b); }
+    for (const p of [...this.pests]) if (p.position.y > 600) { p.remove(this.space); this.pests = this.pests.filter((q) => q !== p); }
     this.renderer.render();
     this.ui.update(this);
   }
