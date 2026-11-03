@@ -25,7 +25,10 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
 #overlay .only-paused, #overlay .only-cleared, #overlay .not-paused { display: none; }
 #overlay[data-state="paused"] .only-paused, #overlay[data-state="cleared"] .only-cleared,
 #overlay[data-state="cleared"] .not-paused, #overlay[data-state="failed"] .not-paused { display: inline-block; }
-#cam-box { position: absolute; right: 12px; bottom: 12px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; width: 20%; max-width: 240px; }
+#cam-box { position: absolute; left: 1.2%; top: 9%; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; width: 20%; max-width: 240px;
+  cursor: grab; touch-action: none; user-select: none; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+#cam-box.dragging { cursor: grabbing; opacity: .85; }
+#cam-box::after { content: '⠿ arraste'; position: absolute; left: 6px; top: 4px; font-size: 11px; color: #fff; background: rgba(0,0,0,.45); padding: 0 6px; border-radius: 6px; pointer-events: none; }
 #cam-box[hidden] { display: none; }
 #cam { width: 100%; display: block; }
 .status { color: var(--gold); min-height: 1.5em; margin: 10px 0 0; }

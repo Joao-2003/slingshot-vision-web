@@ -6,6 +6,33 @@ export class UI {
   constructor() {
     this.$ = (s) => document.querySelector(s);
     this.overlay = this.$('#overlay');
+    this.makeDraggable(this.$('#cam-box'));
+  }
+
+  // A janela da câmera começa no canto superior esquerdo (abaixo da fase) e pode ser arrastada.
+  // A posição fica guardada no navegador, em porcentagem do palco, para valer em qualquer tamanho de tela.
+  makeDraggable(box) {
+    const stage = box.parentElement, KEY = 'slingshot.camPos';
+    const place = (l, t) => {
+      const maxL = 100 - (box.offsetWidth / stage.clientWidth) * 100, maxT = 100 - (box.offsetHeight / stage.clientHeight) * 100;
+      box.style.left = `${Math.min(Math.max(l, 0), Math.max(maxL, 0))}%`;
+      box.style.top = `${Math.min(Math.max(t, 0), Math.max(maxT, 0))}%`;
+    };
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) place(s.l, s.t); } catch (e) { /* sem armazenamento */ }
+    let start = null;
+    box.addEventListener('pointerdown', (e) => {
+      start = { x: e.clientX, y: e.clientY, l: box.offsetLeft, t: box.offsetTop };
+      box.setPointerCapture(e.pointerId); box.classList.add('dragging'); e.preventDefault(); e.stopPropagation();
+    });
+    box.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      place(((start.l + e.clientX - start.x) / stage.clientWidth) * 100, ((start.t + e.clientY - start.y) / stage.clientHeight) * 100);
+    });
+    const end = () => {
+      if (!start) return; start = null; box.classList.remove('dragging');
+      try { localStorage.setItem(KEY, JSON.stringify({ l: parseFloat(box.style.left), t: parseFloat(box.style.top) })); } catch (e) { /* ignora */ }
+    };
+    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
   }
 
   bind(game) {
