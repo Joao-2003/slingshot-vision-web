@@ -7,10 +7,11 @@ export class Character {
     this.size = size;
     this.life = size.getLife();
     this.kind = kind;
-    this.body = Bodies.circle(x, y, size.getRadius(), {
-      restitution: 0.4, friction: 1, frictionAir: 0.002, density: 0.001, sleepThreshold: 90, label: kind,
-    });
-    Body.setMass(this.body, size.getMass());
+    // Character.py: elasticidade 0,95, atrito 1, massa do tamanho e momento de inércia de um disco
+    const r = size.getRadius(), m = size.getMass();
+    this.body = Bodies.circle(x, y, r, { restitution: 0.95, friction: 1, frictionAir: 0, label: kind });
+    Body.setMass(this.body, m);
+    Body.setInertia(this.body, (m * r * r) / 2); // pm.moment_for_circle(mass, 0, radius)
     this.body.plugin.owner = this;
     Composite.add(world, this.body);
   }

@@ -15,16 +15,19 @@ import { PointerInput } from './input/PointerInput.js';
 const { Engine, Bodies, Composite } = Matter;
 
 export const ROPE_LENGTH = 90;
+// O Python fazia 2 passos de 0,01 s por quadro; aqui são 4 subpassos por quadro de 1/60 s,
+// o que mantém as pilhas de madeira estáveis no Matter.js sem precisar de "sleeping".
+export const SUBSTEPS = 4;
 export const STARS = [20000, 40000, 60000];
 
 export class Game {
   constructor(canvas, ui) {
     this.canvas = canvas; this.ui = ui;
-    this.engine = Engine.create({ positionIterations: 12, velocityIterations: 10, enableSleeping: true });
+    this.engine = Engine.create({ positionIterations: 12, velocityIterations: 10, enableSleeping: false });
     this.engine.gravity.scale = GRAVITY_NORMAL;
     const w = canvas.width;
-    this.ground = Bodies.rectangle(w / 2, 540 + 50, w * 3, 100, { isStatic: true, friction: 1, restitution: 0.5, label: 'ground' });
-    this.wall = Bodies.rectangle(w + 25, 300, 50, 1200, { isStatic: true, restitution: 0.6, label: 'wall' });
+    this.ground = Bodies.rectangle(w / 2, 540 + 50, w * 3, 100, { isStatic: true, friction: 1, restitution: 0.95, label: 'ground' });
+    this.wall = Bodies.rectangle(w + 25, 300, 50, 1200, { isStatic: true, friction: 1, restitution: 0.95, label: 'wall' });
     Composite.add(this.engine.world, this.ground);
     this.wallOn = false; this.lowGravity = false;
 
@@ -62,7 +65,7 @@ export class Game {
     this.level.load(n);
     // assenta as estruturas antes de liberar o dano (no Pymunk isso acontecia nos primeiros quadros)
     this.damageEnabledAt = Infinity;
-    for (let i = 0; i < 90; i++) Engine.update(this.engine, 1000 / 60);
+    for (let i = 0; i < 20; i++) this.stepPhysics();
     this.damageEnabledAt = performance.now() + 300;
     this.setState(this.playingState);
   }
@@ -85,11 +88,15 @@ export class Game {
     this.sound.release();
   }
 
+  stepPhysics() {
+    for (let k = 0; k < SUBSTEPS; k++) Engine.update(this.engine, 1000 / 60 / SUBSTEPS);
+  }
+
   step() {
     this.state.update();
-    if (this.state !== this.pausedState) Engine.update(this.engine, 1000 / 60);
+    if (this.state !== this.pausedState) this.stepPhysics();
     const last = this.birds[this.birds.length - 1];
-    if (last && last.path.length < 400 && last.body.speed > 0.5) last.path.push({ ...last.body.position });
+    if (last && last.path.length < 400 && last.body.speed * SUBSTEPS > 0.5) last.path.push({ ...last.body.position });
     for (const b of [...this.birds]) {
       const { x, y } = b.body.position;
       if (x > 1500 || x < -300 || y > 900) { Composite.remove(this.engine.world, b.body); this.birds = this.birds.filter((q) => q !== b); }

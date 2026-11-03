@@ -1,5 +1,20 @@
 // Physics.py: colisões e regras de dano, com os mesmos limiares de impulso do original.
-const { Events, Composite } = Matter;
+import { SUBSTEPS } from './Game.js';
+const { Events, Composite, Pair } = Matter;
+
+// O Pymunk combina elasticidade e atrito multiplicando os valores das duas formas
+// (pássaro 0,95 x madeira 0 = sem quique; pássaro x chão = 0,9). O Matter.js usa o
+// maior e o menor valor; este ajuste reproduz a regra do Pymunk.
+if (!Pair.__pymunk) {
+  const update = Pair.update;
+  Pair.update = function (pair, collision, timestamp) {
+    update(pair, collision, timestamp);
+    const a = collision.parentA, b = collision.parentB;
+    pair.restitution = a.restitution * b.restitution;
+    pair.friction = a.friction * b.friction;
+  };
+  Pair.__pymunk = true;
+}
 
 export class Physics {
   constructor(game) {
@@ -9,7 +24,7 @@ export class Physics {
 
   static impulse(pair) {
     const a = pair.bodyA, b = pair.bodyB, n = pair.collision.normal;
-    const rel = ((a.velocity.x - b.velocity.x) * n.x + (a.velocity.y - b.velocity.y) * n.y) * 60; // px/s
+    const rel = ((a.velocity.x - b.velocity.x) * n.x + (a.velocity.y - b.velocity.y) * n.y) * 60 * SUBSTEPS; // px/s (velocidade do Matter é por subpasso)
     const ma = a.isStatic ? Infinity : a.mass, mb = b.isStatic ? Infinity : b.mass;
     const mEff = ma === Infinity ? mb : mb === Infinity ? ma : (ma * mb) / (ma + mb);
     return Math.abs(rel) * mEff * 1.5; // (1 + elasticidade)

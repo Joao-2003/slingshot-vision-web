@@ -27,6 +27,13 @@ Derrube os porcos com o menor número de pássaros: cada porco vale 10.000 ponto
 | OpenCV + MediaPipe Hands | [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) (HandLandmarker, roda no navegador via WebAssembly) |
 | Sprites e sons em `resources/` | Os mesmos arquivos em `assets/` (fundo, estilingue, pássaro, porco, madeira, estrelas, trilha e efeitos); se algum não carregar, o jogo usa desenho vetorial e Web Audio como reserva |
 
+### Física igual à do Pymunk
+- Cada fase começa nas posições em que o Pymunk deixa as peças depois de assentar (gerado por `tools/export_levels.py` a partir do `Level.py` original), então as pilhas saem idênticas.
+- Mesmas massas, mesma gravidade (700 px/s²), mesmo impulso de lançamento (distância × 53) e mesmos limiares de dano (1100 e 700).
+- Elasticidade e atrito combinados por multiplicação, como no Pymunk (pássaro e porco 0,95, madeira 0, chão 0,95), sem amortecimento do ar.
+- Sem "sleeping": quando uma coluna de baixo cai, o que está em cima cai junto.
+- 4 subpassos por quadro e momento de inércia físico das peças, para o Matter.js sustentar as pilhas como o Pymunk.
+
 A detecção de pinça segue a lógica do `Vision.py`: a distância entre as pontas do polegar e do indicador, medida em relação ao tamanho da mão, precisa ficar abaixo de um limite por pelo menos 200 ms. A imagem da câmera é processada no próprio navegador e não sai do computador.
 
 ## Padrões de projeto
